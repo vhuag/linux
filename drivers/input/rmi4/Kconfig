@@ -108,6 +108,16 @@ config RMI4_F3A
 	  Function 3A provides GPIO support for RMI4 devices. This includes
 	  support for buttons on TouchPads and ClickPads.
 
+config RMI4_F21
+	bool "RMI4 Function 21 (PRESSURE)"
+	help
+	  Say Y here if you want to add support for RMI4 function 21.
+
+	  Function 21 provides buttons/pressure for RMI4 devices. This includes
+	  support for buttons/pressure on ForcePad.
+
+	  If unsure, say N.
+
 config RMI4_F54
 	bool "RMI4 Function 54 (Analog diagnostics)"
 	depends on VIDEO_DEV=y || (RMI4_CORE=m && VIDEO_DEV=m)
