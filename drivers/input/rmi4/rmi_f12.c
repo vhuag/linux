@@ -24,6 +24,7 @@ enum rmi_f12_object_type {
 };
 
 #define F12_DATA1_BYTES_PER_OBJ			8
+#define RMI_QUERRY_DPM_IN_PRESENSE_BIT 29
 
 struct f12_data {
 	struct rmi_2d_sensor sensor;
