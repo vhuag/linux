@@ -35,6 +35,8 @@
 #define PDT_END_SCAN_LOCATION	0x0005
 #define RMI4_END_OF_PDT(id) ((id) == 0x00 || (id) == 0xff)
 
+#define RMI_QUERRY_DPM_IN_PRESENSE_BIT 29
+
 struct pdt_entry {
 	u16 page_start;
 	u8 query_base_addr;

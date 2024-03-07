@@ -162,8 +162,17 @@ static void rmi_2d_sensor_set_input_params(struct rmi_2d_sensor *sensor)
 		input_set_abs_params(input, ABS_MT_POSITION_Y, 0, max_y, 0, 0);
 
 		if (sensor->x_mm && sensor->y_mm) {
-			res_x = (sensor->max_x - sensor->min_x) / sensor->x_mm;
-			res_y = (sensor->max_y - sensor->min_y) / sensor->y_mm;
+			// Support to query DPM value on RMI.
+			// When TP firmware does not support reporting logical and physical values
+			// within the Touchpad's HID report,
+			// we can directly query the DPM value through RMI.
+			if (sensor->bSupportQueryDPM) {
+				res_x = sensor->iDPM_Resolution;
+				res_y = sensor->iDPM_Resolution;
+			} else {
+				res_x = (sensor->max_x - sensor->min_x) / sensor->x_mm;
+				res_y = (sensor->max_y - sensor->min_y) / sensor->y_mm;
+			}
 			if (sensor->axis_align.swap_axes)
 				swap(res_x, res_y);
 

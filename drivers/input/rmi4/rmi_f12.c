@@ -329,6 +329,9 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	u16 data_offset = 0;
 	int mask_size;
 
+	u16 query_dpm_addr = fn->fd.query_base_addr;
+	int iDPM_Resolution = 0;
+	bool bSupportQueryDPM = false;
 	rmi_dbg(RMI_DEBUG_FN, &fn->dev, "%s\n", __func__);
 
 	mask_size = BITS_TO_LONGS(drvdata->irq_count) * sizeof(unsigned long);
@@ -380,6 +383,21 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	}
 	query_addr += 3;
 
+	// Only support to query DPM value on RMI F12.
+	bSupportQueryDPM = test_bit(RMI_QUERRY_DPM_IN_PRESENSE_BIT,
+						(f12->query_reg_desc.presense_map));
+	if (bSupportQueryDPM) {
+		query_dpm_addr = fn->fd.query_base_addr + bitmap_weight(
+			f12->query_reg_desc.presense_map,
+			RMI_QUERRY_DPM_IN_PRESENSE_BIT);
+		ret = rmi_read(fn->rmi_dev, query_dpm_addr, &buf);
+		if (ret < 0) {
+			dev_err(&fn->dev, "Failed to read DPM value: %d\n", ret);
+			return -ENODEV;
+		}
+		iDPM_Resolution = buf;
+	}
+
 	ret = rmi_read_register_desc(rmi_dev, query_addr,
 						&f12->control_reg_desc);
 	if (ret) {
@@ -411,6 +429,8 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	sensor->x_mm = f12->sensor_pdata.x_mm;
 	sensor->y_mm = f12->sensor_pdata.y_mm;
 	sensor->dribble = f12->sensor_pdata.dribble;
+	sensor->bSupportQueryDPM = bSupportQueryDPM;
+	sensor->iDPM_Resolution = iDPM_Resolution;
 
 	if (sensor->sensor_type == rmi_sensor_default)
 		sensor->sensor_type =

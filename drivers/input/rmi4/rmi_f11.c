@@ -1122,6 +1122,10 @@ static int rmi_f11_initialize(struct rmi_function *fn)
 	sensor = &f11->sensor;
 	sensor->fn = fn;
 
+	// Does not support to query DPM value on RMI F11.
+	sensor->bSupportQueryDPM = false;
+	sensor->iDPM_Resolution = 0;
+
 	rc = rmi_f11_get_query_parameters(rmi_dev, f11,
 			&f11->sens_query, query_offset);
 	if (rc < 0)
