@@ -24,7 +24,7 @@ enum rmi_f12_object_type {
 };
 
 #define F12_DATA1_BYTES_PER_OBJ			8
-#define RMI_QUERRY_DPM_IN_PRESENSE_BIT 29
+#define RMI_QUERRY_DPM_IN_PRESENSE_BIT		29
 
 struct f12_data {
 	struct rmi_2d_sensor sensor;
@@ -330,7 +330,7 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	u16 data_offset = 0;
 	int mask_size;
 
-	u16 query_dpm_addr = fn->fd.query_base_addr;
+	u16 query_dpm_addr = 0;
 	int dpm_resolution = 0;
 	bool support_dpm_query = false;
 	rmi_dbg(RMI_DEBUG_FN, &fn->dev, "%s\n", __func__);
