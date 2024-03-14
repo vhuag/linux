@@ -24,6 +24,7 @@ enum rmi_f12_object_type {
 };
 
 #define F12_DATA1_BYTES_PER_OBJ			8
+#define RMI_QUERRY_DPM_IN_PRESENSE_BIT		29
 
 struct f12_data {
 	struct rmi_2d_sensor sensor;
@@ -329,6 +330,9 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	u16 data_offset = 0;
 	int mask_size;
 
+	u16 query_dpm_addr = 0;
+	int dpm_resolution = 0;
+	bool support_dpm_query = false;
 	rmi_dbg(RMI_DEBUG_FN, &fn->dev, "%s\n", __func__);
 
 	mask_size = BITS_TO_LONGS(drvdata->irq_count) * sizeof(unsigned long);
@@ -380,6 +384,21 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	}
 	query_addr += 3;
 
+	// Only support to query DPM value on RMI F12.
+	support_dpm_query = test_bit(RMI_QUERRY_DPM_IN_PRESENSE_BIT,
+						(f12->query_reg_desc.presense_map));
+	if (support_dpm_query) {
+		query_dpm_addr = fn->fd.query_base_addr + bitmap_weight(
+			f12->query_reg_desc.presense_map,
+			RMI_QUERRY_DPM_IN_PRESENSE_BIT);
+		ret = rmi_read(fn->rmi_dev, query_dpm_addr, &buf);
+		if (ret < 0) {
+			dev_err(&fn->dev, "Failed to read DPM value: %d\n", ret);
+			return -ENODEV;
+		}
+		dpm_resolution = buf;
+	}
+
 	ret = rmi_read_register_desc(rmi_dev, query_addr,
 						&f12->control_reg_desc);
 	if (ret) {
@@ -407,9 +426,6 @@ static int rmi_f12_probe(struct rmi_function *fn)
 
 	sensor->axis_align =
 		f12->sensor_pdata.axis_align;
-
-	sensor->x_mm = f12->sensor_pdata.x_mm;
-	sensor->y_mm = f12->sensor_pdata.y_mm;
 	sensor->dribble = f12->sensor_pdata.dribble;
 
 	if (sensor->sensor_type == rmi_sensor_default)
@@ -428,6 +444,13 @@ static int rmi_f12_probe(struct rmi_function *fn)
 	if (ret)
 		return ret;
 
+	if (support_dpm_query) {
+		sensor->x_mm = sensor->max_x / dpm_resolution;
+		sensor->y_mm = sensor->max_y / dpm_resolution;
+	} else {
+		sensor->x_mm = f12->sensor_pdata.x_mm;
+		sensor->y_mm = f12->sensor_pdata.y_mm;
+	}
 	/*
 	 * Figure out what data is contained in the data registers. HID devices
 	 * may have registers defined, but their data is not reported in the
