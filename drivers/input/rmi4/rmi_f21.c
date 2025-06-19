@@ -19,6 +19,7 @@
 struct f21_data {
 	/* Query Data */
 	u8 data_regs[RMI_f21_DATA_REGS_MAX_SIZE];
+	u8 input_report_data[RMI_f21_INPUT_REPORT_DATA_SIZE];
 	struct input_dev *input;
 	u16 key_code;
 };
@@ -36,11 +37,11 @@ static irqreturn_t rmi_f21_attention(int irq, void *ctx)
 			dev_warn(&fn->dev, "f21 interrupted, but data is missing\n");
 			return IRQ_HANDLED;
 		}
-		memcpy(f21->data_regs, drvdata->attn_data.data, RMI_f21_INPUT_REPORT_DATA_SIZE);
+		memcpy(f21->input_report_data, drvdata->attn_data.data, RMI_f21_INPUT_REPORT_DATA_SIZE);
 		drvdata->attn_data.data += RMI_f21_INPUT_REPORT_DATA_SIZE;
 		drvdata->attn_data.size -= RMI_f21_INPUT_REPORT_DATA_SIZE;
 
-		pressed = !!(f21->data_regs[RMI_F21_INPUT_REPORT_FORCE_CLICK_OFFSET] &
+		pressed = !!(f21->input_report_data[RMI_F21_INPUT_REPORT_FORCE_CLICK_OFFSET] &
 					RMI_f21_FORCE_CLICK);
 	} else {
 		error = rmi_read_block(fn->rmi_dev, fn->fd.data_base_addr,
