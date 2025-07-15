@@ -32,14 +32,14 @@ static irqreturn_t rmi_f21_attention(int irq, void *ctx)
 	struct f21_data *f21 = dev_get_drvdata(&fn->dev);
 	struct rmi_driver_data *drvdata = dev_get_drvdata(&fn->rmi_dev->dev);
 	int error;
-	bool bpressed = false;
+	bool pressed = false;
 
 	if (drvdata->attn_data.data) {
 		if (drvdata->attn_data.size < f21->attn_data_size) {
 			dev_warn(&fn->dev, "f21 interrupted, but data is missing\n");
 			return IRQ_HANDLED;
 		}
-		bpressed = (((u8 *)drvdata->attn_data.data)[f21->max_number_Of_finger] &
+		pressed = (((u8 *)drvdata->attn_data.data)[f21->max_number_Of_finger] &
 					RMI_f21_FORCE_CLICK);
 		drvdata->attn_data.data += f21->attn_data_size;
 		drvdata->attn_data.size -= f21->attn_data_size;
@@ -51,11 +51,11 @@ static irqreturn_t rmi_f21_attention(int irq, void *ctx)
 				__func__, error);
 			return IRQ_RETVAL(error);
 		}
-		bpressed = (f21->data_regs[f21->sensor_count * 2] &
+		pressed = (f21->data_regs[f21->sensor_count * 2] &
 					RMI_f21_FORCE_CLICK);
 	}
 
-	input_report_key(f21->input, f21->key_code, bpressed);
+	input_report_key(f21->input, f21->key_code, pressed);
 
 	return IRQ_HANDLED;
 }
@@ -118,7 +118,7 @@ static int rmi_f21_probe(struct rmi_function *fn)
 
 		rmi_read_block(fn->rmi_dev, fn->fd.query_base_addr + f21->f21_query15_offset,
 					f21->data_regs, 1);
-		f21->max_number_Of_finger = f21->data_regs[0];
+		f21->max_number_Of_finger = f21->data_regs[0] & 0x0F;
 	} else {
 		dev_info(&fn->dev, "f21_query15 doesn't support.\n");
 		f21->f21_query15_offset = 0;
@@ -128,7 +128,8 @@ static int rmi_f21_probe(struct rmi_function *fn)
 	if (fn->fd.query_base_addr & BIT(6)) {
 		dev_info(&fn->dev, "Support new F21 feature.\n");
 		f21->attn_data_size = f21->max_number_Of_finger + 1;
-		f21->f21_data_reg_size = f21->sensor_count * 2 + 1 + f21->max_number_Of_finger * 2;
+		f21->f21_data_reg_size = f21->sensor_count * 2 + 1 +
+								f21->max_number_Of_finger * 2;
 	} else {
 		dev_info(&fn->dev, "Support old F21 feature.\n");
 		f21->attn_data_size = f21->sensor_count * 2 + 1;
