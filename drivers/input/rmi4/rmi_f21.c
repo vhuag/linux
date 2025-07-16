@@ -20,9 +20,11 @@ struct f21_data {
 	u16 key_code;
 
 	unsigned int attn_data_size;
+	unsigned int attn_data_index_for_button;
 	unsigned int sensor_count;
 	unsigned int max_number_Of_finger;
 	unsigned int f21_data_reg_size;
+	unsigned int f21_data_reg_index_for_button;
 	unsigned int f21_query15_offset;
 };
 
@@ -39,7 +41,7 @@ static irqreturn_t rmi_f21_attention(int irq, void *ctx)
 			dev_warn(&fn->dev, "f21 interrupted, but data is missing\n");
 			return IRQ_HANDLED;
 		}
-		pressed = (((u8 *)drvdata->attn_data.data)[f21->max_number_Of_finger] &
+		pressed = (((u8 *)drvdata->attn_data.data)[f21->attn_data_index_for_button] &
 					RMI_f21_FORCE_CLICK);
 		drvdata->attn_data.data += f21->attn_data_size;
 		drvdata->attn_data.size -= f21->attn_data_size;
@@ -51,7 +53,7 @@ static irqreturn_t rmi_f21_attention(int irq, void *ctx)
 				__func__, error);
 			return IRQ_RETVAL(error);
 		}
-		pressed = (f21->data_regs[f21->sensor_count * 2] &
+		pressed = (f21->data_regs[f21->f21_data_reg_index_for_button] &
 					RMI_f21_FORCE_CLICK);
 	}
 
@@ -127,13 +129,22 @@ static int rmi_f21_probe(struct rmi_function *fn)
 
 	if (fn->fd.query_base_addr & BIT(6)) {
 		dev_info(&fn->dev, "Support new F21 feature.\n");
+		/*Each finger uses one byte, and the button state uses one byte.*/
 		f21->attn_data_size = f21->max_number_Of_finger + 1;
+		f21->attn_data_index_for_button = f21->attn_data_size -1;
+		/*Each sensor uses two bytes, the button state uses one byte,
+		 and each finger uses two bytes.*/
 		f21->f21_data_reg_size = f21->sensor_count * 2 + 1 +
 								f21->max_number_Of_finger * 2;
+		f21->f21_data_reg_index_for_button = f21->sensor_count * 2;
 	} else {
 		dev_info(&fn->dev, "Support old F21 feature.\n");
+		/*Each finger uses two bytes, and the button state uses one byte.*/
 		f21->attn_data_size = f21->sensor_count * 2 + 1;
+		f21->attn_data_index_for_button = f21->attn_data_size - 1;
+		/*Each finger uses two bytes, and the button state uses one byte.*/
 		f21->f21_data_reg_size = f21->sensor_count * 2 + 1;
+		f21->f21_data_reg_index_for_button = f21->f21_data_reg_size -1;
 	}
 	return 0;
 }
